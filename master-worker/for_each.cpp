@@ -1,5 +1,7 @@
 #include <hpx/hpx_init.hpp>
 #include <hpx/include/iostreams.hpp>
+#include <hpx/parallel/execution_policy.hpp>
+#include <hpx/parallel/algorithms/for_each.hpp>
 
 #include <sstream>
 #include <boost/program_options.hpp>
@@ -14,17 +16,13 @@ void run_job(const JobParams &job_params) {
   ss << "Running job { a = "
      << std::setw(3) << job_params.a
      << ", b = " << std::setw(3) << job_params.b
+     << "}"
+     << " on thread '" << hpx::this_thread::get_id()
      << "'.\n"
     ;
 
   hpx::cout << ss.str();
 }
-
-void launch_job(JobParams job_params) {
-  return run_job(job_params);
-}
-HPX_PLAIN_ACTION(launch_job, launch_job_action);
-
 
 int hpx_main(boost::program_options::variables_map&) {
   int n_jobs = 30;
@@ -34,11 +32,11 @@ int hpx_main(boost::program_options::variables_map&) {
     jobs.push_back({double(i), double(i%2)});
   }
 
-  auto localities = hpx::find_all_localities();
-  hpx::cout << "Number of localities = " << localities.size() << "\n";
-  for(auto && job : jobs) {
-    hpx::apply(launch_job_action(), localities.back(), job);
-  }
+  auto executor = hpx::parallel::execution::parallel_executor();
+  auto policy = hpx::parallel::par.on(executor);
+
+  auto loop_body = [](const JobParams &job) { run_job(job); };
+  hpx::parallel::v1::for_each(policy, jobs.begin(), jobs.end(), loop_body);
 
   hpx::finalize();
   return 0;
