@@ -1,15 +1,18 @@
-HPX_DIR := $(HOME)/third_party/hpx
+HPX_DIR := $(HOME)/third_party/hpx-clang
 
-INCLUDE := -I $(HPX_DIR)/include
-LIBS := -L $(HPX_DIR)/lib -lhpx -lhpx_iostreams -lboost_program_options -lboost_system
+LDFLAGS := -L $(HPX_DIR)/lib -lhpx -lhpx_iostreams -lboost_program_options -lboost_system
 
-.PHONY: all
+CC := clang
+CXX := clang++
+CXXFLAGS := $(CXXFLAGS) -g -std=c++17 -I $(HPX_DIR)/include
 
-all: for_each
-# all: for_each remote_action
+TARGETS := for_each remote_action
 
-remote_action: %: %.cpp
-	$(CXX) $(INCLUDE) $< $(LIBS) -o $@
+.PHONY: all clean
 
-for_each: %: %.cpp
-	$(CXX) $(INCLUDE) $< $(LIBS) -o $@
+all: $(TARGETS)
+
+$(TARGETS): %: %.cpp
+
+clean:
+	@rm -f $(TARGETS)
